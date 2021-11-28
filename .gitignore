@@ -1,0 +1,6 @@
+# this doesn't include the generated file
+config.h
+
+# objects and compiled program
+*.o
+flybinds
