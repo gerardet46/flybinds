@@ -18,6 +18,7 @@ m h -> set monitor to HDMI
 m d -> dual display monitor
 ...
 ```
+You can press Left Key to go up to the menu.
 
 
 Requirements
