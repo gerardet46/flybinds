@@ -1,6 +1,8 @@
 # flybinds
 Create keyboard shortcuts (and show available combinations in top of screen) without holding
 modifier keys (ctrl, super, meta, ...)
+
+It's inspired in Doom Emacs key management and the code is based on dmenu.
 ## Usage
 Map a key to open this program (maybe `\`, `¡` or `CapsLock` key, which are never used.
 Then it will show on top of the screen available key combinations. For example,
