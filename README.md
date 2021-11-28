@@ -2,7 +2,7 @@
 Create keyboard shortcuts (and show available combinations in top of screen) without holding
 modifier keys (ctrl, super, meta, ...)
 ## Usage
-Map a key to open this program (maybe `\\`, `¡` or `CapsLock` key, which are never used.
+Map a key to open this program (maybe `\`, `¡` or `CapsLock` key, which are never used.
 Then it will show on top of the screen available key combinations. For example,
 
 ```
