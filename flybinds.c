@@ -113,29 +113,6 @@ setgeometry(item* _parent, int l) {
     rows = (l % showncols ? 1 : 0) + l / showncols;
 }
 
-static int
-calcgeometry(item *_parent, int l) {
-    /* recursive */
-    int maxrows = 0, i;
-    item* temp = _parent;
-
-    for (i = 0; i < l; i++) {
-	setgeometry(temp, l);
-
-	if (rows > maxrows)
-	    maxrows = rows;
-
-	if (temp->childs) {
-	    /* recursive */
-	    int r = calcgeometry(temp->childs, temp->childslength);
-	    if (r > maxrows)
-		maxrows = r;
-	}
-	temp++;
-    }
-    return maxrows;
-}
-
 static void
 calcoffsets() {
     setgeometry(parent, total);
@@ -168,15 +145,13 @@ push(item *it) {
 static void
 pop() {
     if (!itstack)
-        return NULL;
+        return;
 
     stack *popped = itstack;
 
     while (popped->next)
 	popped = popped->next;
     
-    item *it = popped->it;
-
     /* check if isn't the "master" */
     if (popped->prev) {
 	if (popped->prev->prev) {
@@ -231,14 +206,14 @@ static void
 drawmenu(void)
 {
     item *item;
-    int x = outpaddinghor, y = outpaddingvert, w;
+    int x = outpaddinghor, y = outpaddingvert;
     int cols = calccolumns(parent, total);
 
     drw_setscheme(drw, scheme[SchemeKey]);
     drw_rect(drw, 0, 0, mw, mh, 1, 1);
 
     drw_setscheme(drw, scheme[SchemeBorder]);
-    drw_rect(drw, 0, mh - borderpx, mw, borderpx, 1, 1);
+    drw_rect(drw, 0, topbar ? mh - borderpx : 0, mw, borderpx, 1, 1);
 
     item = parent;
 
@@ -315,11 +290,98 @@ spawn(char* sc, char** args)
 }
 
 static void
+navigate(char* keyname) {
+    if (keyname) {
+        /* search and set parent to that option */
+        item *temp = parent;
+        int j;
+        for (j = 0; j < total; j++) {
+            if (!strcmp(keyname, temp->keyname)) {
+                if (temp->childs) {
+                    /* if it has childs, navigate to them */
+                    push(temp);
+                    parent = temp->childs;
+                    total = temp->childslength;
+
+                    if (temp->displayline == 1 || temp->displayline == 0)
+                        displayline = temp->displayline;
+
+                    calcoffsets();
+                    XResizeWindow(dpy, win, mw, mh);
+                    drw_resize(drw, mw, mh);
+                } else {
+                    /* if not, execute script */
+                    char *arg[8];
+                    int argc;
+                    for (argc = 0; argc < 8; argc++)
+                        arg[argc] = "";
+                    
+                    if (temp->script) {
+                        /* execute if this child has script */
+                        spawn(temp->script, arg);
+                        if (temp->keep != 1) {
+                            cleanup();
+                            exit(0);
+                        }
+                        goto Drawmenu;
+                    }
+
+                    /* if not, search it */
+                    item *sc = NULL;
+                    stack *aux;
+                    char *nextarg;
+                    int keep = 0;
+                    argc = -2;
+
+                    aux = itstack;
+                    while (aux) {
+                        /* search script name */
+                        nextarg = aux->it->keyname;
+                        keep = aux->it->keep;
+
+                        if (aux->it->script && strlen(aux->it->script) > 0) {
+                            /* change to this script */
+                            sc = aux->it;
+                            for (argc = 0; argc < 8; argc++)
+                                arg[argc] = "";
+
+                            argc = -2;
+                        }
+
+                        if (++argc >= 0 && argc < 8 && nextarg)
+                            arg[argc] = nextarg;
+
+                        aux = aux->next;
+                    }
+
+                    if (sc) {
+                        arg[++argc] = temp->keyname;
+                        
+                        spawn(sc->script, arg);
+                        if (temp->keep != 1 && keep != 1) {
+                            cleanup();
+                            exit(0);
+                        }
+                    } else {
+                        /* no script path */
+                        cleanup();
+                        exit(1);
+                    }
+                }
+
+                goto Drawmenu;
+            }
+            temp++;
+        }
+    }
+ Drawmenu:
+    drawmenu();
+}
+
+static void
 keypress(XKeyEvent *ev)
 {
-    char buf[32];
     KeySym ksym;
-    Status status;
 
     /* XmbLookupString(xic, ev, buf, sizeof buf, &ksym, &status); */
     ksym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
@@ -328,106 +390,24 @@ keypress(XKeyEvent *ev)
         cleanup();
         exit(1);
     } else if (ksym == XK_Left) {
-	/* go backwards */
-	pop();
-	calcoffsets();
-	XResizeWindow(dpy, win, mw, mh);
-	drw_resize(drw, mw, mh);
-	goto Drawmenu;
+        /* go backwards */
+        pop();
+        calcoffsets();
+        XResizeWindow(dpy, win, mw, mh);
+        drw_resize(drw, mw, mh);
+        goto Drawmenu;
     }
 
     int i;
     for (i = 0; i < LENGTH(keys); i++)
-        if (ksym == keys[i].keysym
-	    && (keys[i].mod) == (ev->state)) {
+        if (ksym == keys[i].keysym && (keys[i].mod) == (ev->state)) {
             /*char* keyname = getKeyName(keys[i].mod, keys[i].keysym);*/
-	    char* keyname = keys[i].name;
+            char* keyname = keys[i].name;
 
-            if (keyname) {
-                /* search and set parent to that option */
-                item *temp = parent;
-                int j;
-                for (j = 0; j < total; j++) {
-                    if (!strcmp(keyname, temp->keyname)) {
-			if (temp->childs) {
-			    /* if it has childs, navigate to them */
-			    push(temp);
-			    parent = temp->childs;
-			    total = temp->childslength;
-
-			    if (temp->displayline == 1 || temp->displayline == 0)
-				displayline = temp->displayline;
-
-			    calcoffsets();
-			    XResizeWindow(dpy, win, mw, mh);
-			    drw_resize(drw, mw, mh);
-			} else {
-			    /* if not, execute script */
-			    char *arg[8];
-			    int argc;
-			    for (argc = 0; argc < 8; argc++)
-				arg[argc] = "";
-			    
-			    if (temp->script) {
-				/* execute if this child has script */
-				spawn(temp->script, arg);
-				if (temp->keep != 1) {
-				    cleanup();
-				    exit(0);
-				}
-				goto Drawmenu;
-			    }
-
-			    /* if not, search it */
-			    item *sc;
-			    stack *aux;
-			    char *nextarg, *prevarg = NULL;
-			    int keep = 0;
-                            argc = -2;
-
-			    aux = itstack;
-			    while (aux) {
-				/* search script name */
-				nextarg = aux->it->keyname;
-				keep = aux->it->keep;
-
-				if (aux->it->script && strlen(aux->it->script) > 0) {
-				    /* change to this script */
-				    sc = aux->it;
-				    for (argc = 0; argc < 8; argc++)
-					arg[argc] = "";
-
-				    argc = -2;
-				}
-
-				if (++argc >= 0 && argc < 8 && nextarg)
-				    arg[argc] = nextarg;
-
-				aux = aux->next;
-			    }
-
-			    if (sc) {
-				arg[++argc] = temp->keyname;
-				
-				spawn(sc->script, arg);
-				if (temp->keep != 1 && keep != 1) {
-				    cleanup();
-				    exit(0);
-				}
-			    } else {
-				/* no script path */
-				cleanup();
-				exit(1);
-			    }
-			}
-
-                        goto Drawmenu;
-                    }
-                    temp++;
-                }
-            }
+            navigate(keyname);
+ 
         }
-Drawmenu:
+ Drawmenu:
     drawmenu();
 }
 
@@ -519,7 +499,6 @@ setup(void)
 					break;
 
 		mw = info[i].width;
-		/*mh = calcgeometry(parent, total) * bh + 2 * outpadding;*/
 		calcoffsets();
 		x = info[i].x_org;
 		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
@@ -570,8 +549,10 @@ setup(void)
 static void
 usage(void)
 {
-	fputs("usage: flybinds [-bfv] [-c columns] [-H hint(0/1)] [-fn font] [-m monitor]\n"
-	      "                [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n", stderr);
+	fputs("usage: flybinds [-bvh] [-c columns] [-fn font] [-m monitor]\n"
+	      "                [-bg color] [-kf color] [-sf color] [-df color] [-bc color]\n"
+	      "                [-cs separation] [-ph paddingH] [-pv paddingV] [-bw border width]\n"
+          "                [-w windowid] key1 key2 ...\n", stderr);
 	exit(1);
 }
 
@@ -579,40 +560,54 @@ int
 main(int argc, char *argv[])
 {
 	XWindowAttributes wa;
-	int i, fast = 0;
+	int i, j = 0;
+
+	parent = items;
+	total = LENGTH(items);
 
 	for (i = 1; i < argc; i++)
 		/* these options take no arguments */
 		if (!strcmp(argv[i], "-v")) {      /* prints version information */
-			puts("dmenukey-"VERSION);
+			puts("flybinds-"VERSION);
 			exit(0);
 		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
 			topbar = 0;
-		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
-			fast = 1;
-		else if (i + 1 == argc)
+		else if (!strcmp(argv[i], "-h")) /* displays help */
 			usage();
 		/* these options take one argument */
 		else if (!strcmp(argv[i], "-c"))   /* number of columns in vertical list */
 			columns = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-cs"))   /* column separation */
+			colpadding = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-ph"))   /* outside hor. padding */
+			outpaddinghor = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-pv"))   /* outside vert. padding */
+			outpaddingvert = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-bw"))   /* border width */
+			borderpx = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-m"))
 			mon = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-fn"))  /* font or font set */
 			fonts[0] = argv[++i];
-		else if (!strcmp(argv[i], "-nb"))  /* normal background color */
-			colors[SchemeKey][ColBg] = argv[++i];
-		else if (!strcmp(argv[i], "-nf"))  /* normal foreground color */
+		else if (!strcmp(argv[i], "-bg")) {  /* global background color */
+			colors[SchemeKey][ColBg]  = argv[++i];
+			colors[SchemeSep][ColBg]  = argv[i];
+			colors[SchemeDesc][ColBg] = argv[i];
+        } else if (!strcmp(argv[i], "-kf"))  /* key foreground color */
 			colors[SchemeKey][ColFg] = argv[++i];
-		else if (!strcmp(argv[i], "-sb"))  /* selected background color */
-			colors[SchemeDesc][ColBg] = argv[++i];
-		else if (!strcmp(argv[i], "-sf"))  /* selected foreground color */
+		else if (!strcmp(argv[i], "-sf"))  /* separator foreground color */
+			colors[SchemeSep][ColFg] = argv[++i];
+		else if (!strcmp(argv[i], "-df"))  /* description foreground color */
 			colors[SchemeDesc][ColFg] = argv[++i];
+		else if (!strcmp(argv[i], "-bc"))  /* border color */
+			colors[SchemeBorder][ColBg] = argv[++i];
 		else if (!strcmp(argv[i], "-w"))   /* embedding window id */
 			embed = argv[++i];
-        else if (!strcmp(argv[i], "-H"))   /* show/hide hint */
-            showhint = atoi(argv[++i]);
-		else
-			usage();
+		/* naviagate from this arg (set initial item diferent from parent) */
+		else {
+            j = i;
+            break;
+        }
 
 
 	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
@@ -635,12 +630,13 @@ main(int argc, char *argv[])
 	if (pledge("stdio rpath", NULL) == -1)
 		die("pledge");
 #endif
-	grabkeyboard();
+    grabkeyboard();
+    setup();
 
-	parent = items;
-	total = LENGTH(items);
-	setup();
-	run();
+    for (; j < argc; j++)
+        navigate(argv[j]);
+    
+    run();
 
-	return 1; /* unreachable */
+    return 1; /* unreachable */
 }

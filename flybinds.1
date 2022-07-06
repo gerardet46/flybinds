@@ -1,3 +1,81 @@
-No manual by the moment. Just play with the program.
-
-You can press Left Arrow key to go back on the menu.
+.TH FLYBINDS 1 flybinds\-VERSION
+.SH NAME
+flybinds \- keychords in Xorg
+.SH SYNOPSIS
+.B flybinds
+.RB [ \-bvh ]
+.RB [ \-c
+.IR columns ]
+.RB [ \-fn
+.IR font ]
+.RB [ \-m
+.IR monitor ]
+.RB [ \-bg
+.IR color ]
+.RB [ \-kf
+.IR color ]
+.RB [ \-sf
+.IR color ]
+.RB [ \-df
+.IR color ]
+.RB [ \-bc
+.IR color ]
+.RB [ \-cs
+.IR separation ]
+.RB [ \-ph
+.IR paddingH ]
+.RB [ \-pv
+.IR paddingV ]
+.RB [ \-bw
+.IR border width ]
+.RB [ \-w
+.IR windowid ]
+.IR key1
+.IR key2 " ..."
+.SH DESCRIPTION
+.B flybinds 
+Keychord utility for Xorg with like which-key support in Emacs. It can be launched
+without parameters to go to the top parent or with some leading paramenters and
+flybinds will be launched as if you had pressed key1, then key2, ...
+.SH OPTIONS
+.TP
+.B \-b
+appears at the bottom of the screen.
+.TP
+.B \-v
+displays version.
+.TP
+.B \-h
+display help message.
+.TP
+.B \-c " columns"
+maximum number of columns to be displayed.
+.TP
+.BI \-bg " color"
+background color.
+.TP
+.BI \-kf " color"
+foreground color for the key name.
+.TP
+.BI \-sf " color"
+foreground color for the separator.
+.TP
+.BI \-df " color"
+foreground color for the description.
+.TP
+.BI \-bc " color"
+border color.
+.TP
+.BI \-cs " separation"
+column separation.
+.TP
+.BI \-ph " paddingH"
+padding for left and right sides.
+.TP
+.BI \-pv " paddingV"
+padding for up and down sides.
+.TP
+.BI \-bw " width"
+border width.
+.TP
+.

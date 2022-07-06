@@ -20,6 +20,22 @@ m d -> dual display monitor
 ```
 You can press Left Key to go up to the menu.
 
+For more power, you can launch `flybinds` followed by some arguments `key1 key2 ...` to navigate to those items.
+
+For example, let's say we have a parent item **c (config)** and there a child **m (monitors)** which have child to setup the monitors. Then, we can run `flybinds c m` to open *flybinds* directly in the *monitors* section.
+
+## Scripts
+To avoid writing a script per item, you can group a script for a whole submenu. In the example of *shutdown, reboot, ...* we can write a simple script like this:
+```bash
+case "$@" in
+    s) poweroff ;;
+    r) reboot ;;
+esac
+```
+and only set the path of the script to the parent items.
+
+Just play around with the program and you will understand it!
+
 
 Requirements
 ------------
