@@ -3,19 +3,25 @@
 static int topbar = 1;                      /* -b  option; if 0, flybinds appears at bottom     */
 
 /* -fn option overrides fonts[0]; default X11 font or font set */
+static char font[] = "monospace:size=12";
 static const char *fonts[] = {
-	"monospace:size=12"
+	font,
+    "monospace:size=12",
 };
-static const char *sep         = "->";      /* -s option; set the separator between key and text */
-static const char *maxkey      = "\\n";     /* max-length of key */
-static const char background[] = "#000000"; /* global background */
+static char sep[]        = "->";      /* -s option; set the separator between key and text */
+static char *maxkey      = "\\n";     /* max-length of key */
+static char background[] = "#000000"; /* global background */
+static char keyfg[]      = "#00ff00"; /* key name foreground */
+static char sepfg[]      = "#00ffff"; /* separator foreground */
+static char descfg[]     = "#ffffff"; /* description foreground */
+static char bordercol[]  = "#ff0000"; /* border color */
 
-static const char *colors[SchemeLast][2] = {
-	/*                 fg           bg       */
-	[SchemeKey]    = { "#00ff00"  , background }, /* fg for key */
-	[SchemeSep]    = { "#00ffff"  , background }, /* fg for separator (->) */
-	[SchemeDesc]   = { "#ffffff"  , background }, /* fg for description */
-	[SchemeBorder] = { background , "#ffffff"  }, /* bg for border */
+static char *colors[SchemeLast][2] = {
+	/*                 fg          bg       */
+	[SchemeKey]    = { keyfg,      background }, /* fg for key */
+	[SchemeSep]    = { sepfg,      background }, /* fg for separator (->) */
+	[SchemeDesc]   = { descfg,     background }, /* fg for description */
+	[SchemeBorder] = { background, bordercol  }, /* bg for border */
 };
 /* -c option, if nonzero flybinds will set this number of colums. If not, it's calculated */
 static unsigned int columns        = 0;   /* [-c]  max-columns (0 for auto) */
@@ -24,6 +30,23 @@ static unsigned int outpaddinghor  = 25;  /* [-ph] */
 static unsigned int outpaddingvert = 15;  /* [-pv] */
 static unsigned int borderpx       = 2;   /* [-bw] */
 
+/*
+ * Xresources preferences to load at startup (the class to use is "flybinds")
+ */
+ResourcePref resources[] = {
+	{ "font",           STRING,  &font },
+	{ "separator",      STRING,  &sep },
+	{ "background",     STRING,  &background },
+	{ "keyfg",          STRING,  &keyfg },
+	{ "sepfg",          STRING,  &sepfg },
+	{ "descfg",         STRING,  &descfg },
+	{ "bordercol",      STRING,  &bordercol },
+	{ "maxcolumns",     INTEGER, &columns },
+	{ "colpadding",     INTEGER, &colpadding },
+	{ "outpaddinghor",  INTEGER, &outpaddinghor },
+	{ "outpaddingvert", INTEGER, &outpaddingvert },
+	{ "borderpx",       INTEGER, &borderpx },
+};
 
 /* see keys.h to see the keynames */
 /*

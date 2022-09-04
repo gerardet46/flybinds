@@ -24,6 +24,9 @@ For more power, you can launch `flybinds` followed by some arguments `key1 key2 
 
 For example, let's say we have a parent item **c (config)** and there a child **m (monitors)** which have child to setup the monitors. Then, we can run `flybinds c m` to open *flybinds* directly in the *monitors* section.
 
+## Xresources
+It can be configured via the `~/.Xresources` file, using the class `flybinds`. Check `config.def.h` to see what resources can be customized.
+
 ## Scripts
 To avoid writing a script per item, you can group a script for a whole submenu. In the example of *shutdown, reboot, ...* we can write a simple script like this:
 ```bash
