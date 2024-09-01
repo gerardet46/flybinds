@@ -405,7 +405,7 @@ keypress(XKeyEvent *ev)
     if (ksym == XK_Escape) {
         cleanup();
         exit(1);
-    } else if (ksym == XK_Left) {
+    } else if (ksym == backkey) {
         /* go backwards */
         pop();
         calcoffsets();
@@ -416,7 +416,7 @@ keypress(XKeyEvent *ev)
 
     int i;
     for (i = 0; i < LENGTH(keys); i++)
-        if (ksym == keys[i].keysym && (keys[i].mod) == (ev->state)) {
+        if (ksym == keys[i].keysym && (keys[i].mod | 16) == (ev->state | 16)) {
             /*char* keyname = getKeyName(keys[i].mod, keys[i].keysym);*/
             char* keyname = keys[i].name;
 
