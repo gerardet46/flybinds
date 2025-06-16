@@ -51,16 +51,8 @@ struct item {
 	char* script;
 	unsigned int keep;
 	item* childs;
-	unsigned int childslength;
 	int displayline;
-};
-
-/* stack */
-typedef struct stack stack;
-struct stack {
-	item* it;
-	stack* next;
-	stack* prev;
+	item* parent;
 };
 
 static char* embed;
@@ -70,7 +62,6 @@ static int lrpad; /* sum of left and right padding */
 static int total;
 static int displayline = 0;
 static item* parent;
-static stack* itstack;
 static int mon = -1, screen;
 
 static Atom utf8;
@@ -99,96 +90,27 @@ static void resource_load(XrmDatabase db, char* name, enum resource_type rtype, 
 #include "config.h"
 #include "keys.h"
 
-static int
-calccolumnwidth(item* _parent, int l)
-{
-	int max, i, w;
-	item* temp;
-
-	if (displayline == 1)
-		return mw - 2 * outpaddinghor;
-
-	max = 0;
-	temp = _parent;
-
-	for (i = 0; i < l; i++, temp++) {
-		w = ITEMW(temp);
-		if (w > max)
-			max = w;
-	}
-	return max + colpadding;
-}
-
-static int
-calccolumns(item* _parent, int l)
-{
-	int cw = calccolumnwidth(_parent, l); /* sets columnwidth */
-	int c  = (mw - 2 * outpaddingvert) / cw;
-
-	return (c < columns || columns == 0) ? c : columns;
-}
-
-static void
-setgeometry(item* _parent, int l)
-{
-	columnwidth = calccolumnwidth(_parent, l);
-	showncols   = calccolumns(_parent, l);
-	rows        = (l % showncols ? 1 : 0) + l / showncols;
-}
-
 static void
 calcoffsets()
 {
-	setgeometry(parent, total);
-	mh = rows * bh + 2 * outpaddingvert;
-}
+	/* cw = column width, c = numcols */
+	int c, max = 0;
+	item* temp = parent;
 
-static void
-push(item* it)
-{
-	/* push to the end */
-
-	stack* newnode = (struct stack*)malloc(sizeof(struct stack));
-	newnode->it    = it;
-	newnode->next  = NULL;
-
-	stack* aux = itstack;
-	while (aux->next)
-		aux = aux->next;
-
-	newnode->prev = aux;
-	aux->next     = newnode;
-}
-
-/* pops to the previous item */
-static void
-pop()
-{
-	if (!itstack)
-		return;
-
-	stack* popped = itstack;
-
-	while (popped->next)
-		popped = popped->next;
-
-	/* check if isn't the "master" */
-	if (popped->prev) {
-		if (popped->prev->prev) {
-			parent = popped->prev->it->childs;
-			total  = popped->prev->it->childslength;
-
-			if (popped->prev->prev->it->displayline == 0 || popped->prev->prev->it->displayline == 1)
-				displayline = popped->prev->prev->it->displayline;
-		} else {
-			parent      = items;
-			total       = LENGTH(items);
-			displayline = 0;
-		}
-
-		popped->prev->next = NULL;
-		free(popped);
+	/* calc total items and column max width */
+	total = 0;
+	while (temp->keyname) {
+		max = MAX(max, ITEMW(temp));
+		temp++;
+		total++;
 	}
+
+	/* set geometry */
+	columnwidth = displayline == 1 ? mw - 2 * outpaddinghor : max + colpadding;
+	c           = (mw - 2 * outpaddingvert) / columnwidth;
+	showncols   = (c < columns || columns == 0) ? c : columns;
+	rows        = (total % showncols ? 1 : 0) + total / showncols;
+	mh          = rows * bh + 2 * outpaddingvert;
 }
 
 static void
@@ -226,7 +148,6 @@ drawmenu(void)
 {
 	item* item;
 	int x = outpaddinghor, y = outpaddingvert;
-	int cols = calccolumns(parent, total);
 
 	drw_setscheme(drw, scheme[SchemeKey]);
 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
@@ -239,7 +160,7 @@ drawmenu(void)
 	for (int i = 0; i < total; i++) {
 		drawitem(item, x, y, mw - x);
 
-		if ((i + 1) % cols == 0) {
+		if ((i + 1) % showncols == 0) {
 			y += bh;
 			x = outpaddinghor;
 		} else
@@ -319,9 +240,8 @@ navigate(char* keyname)
 			if (!strcmp(keyname, temp->keyname)) {
 				if (temp->childs) {
 					/* if it has childs, navigate to them */
-					push(temp);
+					temp->childs->parent = parent;
 					parent = temp->childs;
-					total  = temp->childslength;
 
 					if (temp->displayline == 1 || temp->displayline == 0)
 						displayline = temp->displayline;
@@ -347,20 +267,19 @@ navigate(char* keyname)
 
 					/* if not, search it */
 					item* sc = NULL;
-					stack* aux;
+					item* aux = parent;
 					char* nextarg;
 					int keep = 0;
 					argc     = -2;
 
-					aux = itstack;
-					while (aux) {
+					while (1) {
 						/* search script name */
-						nextarg = aux->it->keyname;
-						keep    = aux->it->keep;
+						nextarg = aux->keyname;
+						keep    = aux->keep;
 
-						if (aux->it->script && strlen(aux->it->script) > 0) {
+						if (aux->script && strlen(aux->script) > 0) {
 							/* change to this script */
-							sc = aux->it;
+							sc = aux;
 							for (argc = 0; argc < 8; argc++)
 								arg[argc] = "";
 
@@ -370,7 +289,9 @@ navigate(char* keyname)
 						if (++argc >= 0 && argc < 8 && nextarg)
 							arg[argc] = nextarg;
 
-						aux = aux->next;
+						if (aux == aux->parent)
+							break;
+						aux = aux->parent;
 					}
 
 					if (sc) {
@@ -409,17 +330,18 @@ keypress(XKeyEvent* ev)
 		exit(1);
 	} else if (ksym == backkey) {
 		/* go backwards */
-		pop();
+		parent = parent->parent;
 		calcoffsets();
 		XResizeWindow(dpy, win, mw, mh);
 		drw_resize(drw, mw, mh);
-		goto Drawmenu;
+	} else {
+		for (i = 0; i < LENGTH(keys); i++) {
+			if (ksym == keys[i].keysym && (keys[i].mod | 16) == (ev->state | 16)) {
+				navigate(keys[i].name);
+				break;
+			}
+		}
 	}
-
-	for (i = 0; i < LENGTH(keys); i++)
-		if (ksym == keys[i].keysym && (keys[i].mod | 16) == (ev->state | 16))
-			navigate(keys[i].name);
-Drawmenu:
 	drawmenu();
 }
 
@@ -620,11 +542,7 @@ int main(int argc, char* argv[])
 	load_xresources();
 
 	parent = items;
-	total  = LENGTH(items);
-
-	itstack       = (struct stack*)malloc(sizeof(struct stack));
-	itstack->it   = items;
-	itstack->prev = NULL;
+	parent->parent = parent;
 
 	for (i = 1; i < argc; i++)
 		/* these options take no arguments */

@@ -56,7 +56,6 @@ description
 script           path to script or NULL
 keep open?       0 / 1
 childs           submenu
-childs length    LENGTH(submenu)
 one per line?    0 / 1
 */
 
@@ -64,17 +63,20 @@ one per line?    0 / 1
 static item menu21[] = {
     { "1", "Option 2.1.1" },
     { "2", "Option 2.1.2" },
+	{ NULL } /* last element MUST be {NULL} */
 };
 /* subsubmenu 2.2 */
 static item menu22[] = {
     { "1", "Option 2.2.1" },
     { "2", "Option 2.2.2" },
     { "3", "Option 2.2.3" },
+	{ NULL }
 };
 /* submenu 2 */
 static item menu2[] = {
-    { "A", "Submenu 1", NULL, 0, menu21, LENGTH(menu21) }, /* capital A */
-    { "B", "Submenu 2", NULL, 1, menu22, LENGTH(menu22) },
+    { "A", "Submenu 1", NULL, 0, menu21 }, /* capital A */
+    { "B", "Submenu 2", NULL, 1, menu22 },
+	{ NULL }
 };
 /* submenu 1 */
 static item menu1[] = {
@@ -83,11 +85,13 @@ static item menu1[] = {
     { "␣",   "Option 3", "notify-send 'space pressed'" },
     { "\\n", "Option 4", "notify-send 'enter pressed'" },
     { "n",   "Option 5", "notify-send 'n pressed'"     },
+	{ NULL }
 };
     
 /* parent items */
 static item items[] = {
-    /* keyname  description    path to script          keep open?  childs  childs length    one per line */
-    { "a",      "Menu A",      "/usr/bin/notify-send", 0,          menu1,  LENGTH(menu1)    ,0 },
-    { "b",      "Menu B",      "/usr/bin/notify-send", 1,          menu2,  LENGTH(menu2)    ,1 },
+    /* keyname  description    path to script          keep open?  childs  one per line */
+    { "a",      "Menu A",      "/usr/bin/notify-send", 0,          menu1,  0 },
+    { "b",      "Menu B",      "/usr/bin/notify-send", 1,          menu2,  1 },
+	{ NULL }
 };
