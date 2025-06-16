@@ -32,10 +32,11 @@
 /* enums */
 enum {
 	SchemeKey,
+	SchemeTitle,
 	SchemeDesc,
 	SchemeSep,
 	SchemeBorder,
-	SchemeLast
+	SchemeLast,
 }; /* color schemes */
 
 typedef struct {
@@ -57,7 +58,7 @@ struct item {
 
 static char* embed;
 static int bh, mw, mh;
-static int inputw = 0, columnwidth, showncols, rows;
+static int inputw = 0, columnwidth, showncols;
 static int lrpad; /* sum of left and right padding */
 static int total;
 static int displayline = 0;
@@ -93,8 +94,8 @@ static void resource_load(XrmDatabase db, char* name, enum resource_type rtype, 
 static void
 calcoffsets()
 {
-	/* cw = column width, c = numcols */
-	int c, max = 0;
+	/* c = number of columns, r = number of rows, comm = number of comments */
+	int c, i = 0, max = 0, r = 0, comm = 0;
 	item* temp = parent;
 
 	/* calc total items and column max width */
@@ -105,12 +106,29 @@ calcoffsets()
 		total++;
 	}
 
-	/* set geometry */
+	/* columns */
 	columnwidth = displayline == 1 ? mw - 2 * outpaddinghor : max + colpadding;
-	c           = (mw - 2 * outpaddingvert) / columnwidth;
+	c           = (mw - 2 * outpaddinghor) / columnwidth;
 	showncols   = (c < columns || columns == 0) ? c : columns;
-	rows        = (total % showncols ? 1 : 0) + total / showncols;
-	mh          = rows * bh + 2 * outpaddingvert;
+
+	/* rows */
+	temp = parent;
+	while (temp->keyname) {
+		if (temp->keyname[0] == '#') {
+			if (i % showncols)
+				r++;
+			r++;
+			comm++;
+			i = 0;
+		} else if (++i % showncols == 0)
+			r++;
+		temp++;
+	}
+	if (i % showncols)
+		r++;
+
+	/* height (depends on rows and comm) */
+	mh = r * bh + comm * titlepadding + 2 * outpaddingvert;
 }
 
 static void
@@ -126,7 +144,14 @@ cleanup(void)
 	XCloseDisplay(dpy);
 }
 
-static int
+static void
+drawcomment(item* item, int x, int y, int w)
+{
+	drw_setscheme(drw, scheme[SchemeTitle]);
+	drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
+}
+
+static void
 drawitem(item* item, int x, int y, int w)
 {
 	drw_setscheme(drw, scheme[SchemeKey]);
@@ -140,14 +165,14 @@ drawitem(item* item, int x, int y, int w)
 	x += TEXTW(sep);
 
 	drw_setscheme(drw, scheme[SchemeDesc]);
-	return drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
+	drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
 }
 
 static void
 drawmenu(void)
 {
-	item* item;
-	int x = outpaddinghor, y = outpaddingvert;
+	item* item = parent;
+	int x = outpaddinghor, y = outpaddingvert, i;
 
 	drw_setscheme(drw, scheme[SchemeKey]);
 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
@@ -155,18 +180,24 @@ drawmenu(void)
 	drw_setscheme(drw, scheme[SchemeBorder]);
 	drw_rect(drw, 0, topbar ? mh - borderpx : 0, mw, borderpx, 1, 1);
 
-	item = parent;
-
-	for (int i = 0; i < total; i++) {
-		drawitem(item, x, y, mw - x);
-
-		if ((i + 1) % showncols == 0) {
+	for (i = 0; item->keyname; i++, item++) {
+		if (item->keyname[0] == '#') {
+			if (x != outpaddinghor) {
+				y += bh;
+				x = outpaddinghor;
+			}
+			y += titlepadding;
+			drawcomment(item, x, y, mw);
 			y += bh;
-			x = outpaddinghor;
-		} else
-			x += columnwidth;
-
-		item++;
+			i = 0;
+		} else {
+			drawitem(item, x, y, mw - x);
+			if ((i + 1) % showncols == 0) {
+				y += bh;
+				x = outpaddinghor;
+			} else
+				x += columnwidth;
+		}
 	}
 
 	drw_map(drw, win, 0, 0, mw, mh);
@@ -242,10 +273,7 @@ navigate(char* keyname)
 					/* if it has childs, navigate to them */
 					temp->childs->parent = parent;
 					parent = temp->childs;
-
-					if (temp->displayline == 1 || temp->displayline == 0)
-						displayline = temp->displayline;
-
+					displayline = temp->displayline == 1 ? 1 : 0;
 					calcoffsets();
 					XResizeWindow(dpy, win, mw, mh);
 					drw_resize(drw, mw, mh);
@@ -331,6 +359,7 @@ keypress(XKeyEvent* ev)
 	} else if (ksym == backkey) {
 		/* go backwards */
 		parent = parent->parent;
+		displayline = parent->parent->displayline == 1 ? 1 : 0;
 		calcoffsets();
 		XResizeWindow(dpy, win, mw, mh);
 		drw_resize(drw, mw, mh);

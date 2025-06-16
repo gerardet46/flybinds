@@ -20,6 +20,7 @@ static unsigned int backkey = XK_Left;   /* backwards key */
 static char *colors[SchemeLast][2] = {
 	/*                 fg          bg       */
 	[SchemeKey]    = { keyfg,      background }, /* fg for key */
+	[SchemeTitle]  = { keyfg,      background }, /* fg for key */
 	[SchemeSep]    = { sepfg,      background }, /* fg for separator (->) */
 	[SchemeDesc]   = { descfg,     background }, /* fg for description */
 	[SchemeBorder] = { background, bordercol  }, /* bg for border */
@@ -29,6 +30,7 @@ static unsigned int columns        = 0;   /* [-c]  max-columns (0 for auto) */
 static unsigned int colpadding     = 100; /* [-cs] separation between cols */
 static unsigned int outpaddinghor  = 25;  /* [-ph] */
 static unsigned int outpaddingvert = 15;  /* [-pv] */
+static unsigned int titlepadding   = 5;   /* [-pt] */
 static unsigned int borderpx       = 2;   /* [-bw] */
 
 /*
@@ -46,17 +48,18 @@ ResourcePref resources[] = {
 	{ "colpadding",     INTEGER, &colpadding },
 	{ "outpaddinghor",  INTEGER, &outpaddinghor },
 	{ "outpaddingvert", INTEGER, &outpaddingvert },
+	{ "titlepadding",   INTEGER, &titlepadding },
 	{ "borderpx",       INTEGER, &borderpx },
 };
 
-/* see keys.h to see the keynames */
 /*
-keyname          see keys.h
-description      
-script           path to script or NULL
-keep open?       0 / 1
-childs           submenu
-one per line?    0 / 1
+ITEM STRUCT:
+- keyname          see keys.h
+- description
+- script           path to script or NULL
+- keep open?       0 / 1 (applies if childs is NULL)
+- childs           submenu
+- one per line?    0 / 1 (applies if childs is not NULL)
 */
 
 /* subsubmenu 2.1 */
@@ -67,31 +70,33 @@ static item menu21[] = {
 };
 /* subsubmenu 2.2 */
 static item menu22[] = {
-    { "1", "Option 2.2.1" },
-    { "2", "Option 2.2.2" },
-    { "3", "Option 2.2.3" },
+    { "1", "Option 2.2.1", NULL, 1 }, /* keep open */
+    { "2", "Option 2.2.2", NULL, 1 }, /* keep open */
+    { "3", "Option 2.2.3", NULL, 0 },
 	{ NULL }
 };
 /* submenu 2 */
 static item menu2[] = {
     { "A", "Submenu 1", NULL, 0, menu21 }, /* capital A */
-    { "B", "Submenu 2", NULL, 1, menu22 },
+    { "B", "Submenu 2", NULL, 0, menu22 },
 	{ NULL }
 };
 /* submenu 1 */
 static item menu1[] = {
+    { "#",   "TITLE 1"},
     { ".",   "Option 1", "notify-send '. pressed'"     },
     { ",",   "Option 2", "notify-send ', pressed'"     },
     { "␣",   "Option 3", "notify-send 'space pressed'" },
+	{ "#",   "TITLE 2"},
     { "\\n", "Option 4", "notify-send 'enter pressed'" },
     { "n",   "Option 5", "notify-send 'n pressed'"     },
 	{ NULL }
 };
-    
-/* parent items */
+
+/* parent items (must be named "items") */
 static item items[] = {
     /* keyname  description    path to script          keep open?  childs  one per line */
     { "a",      "Menu A",      "/usr/bin/notify-send", 0,          menu1,  0 },
-    { "b",      "Menu B",      "/usr/bin/notify-send", 1,          menu2,  1 },
+    { "b",      "Menu B",      "/usr/bin/notify-send", 0,          menu2,  1 },
 	{ NULL }
 };
