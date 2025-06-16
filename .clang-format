@@ -1,0 +1,16 @@
+﻿---
+BasedOnStyle: WebKit
+AccessModifierOffset: '0'
+AlignConsecutiveMacros: 'true'
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'false'
+AlignOperands: 'true'
+AlignTrailingComments: 'true'
+ContinuationIndentWidth: 4
+IndentWidth: 4
+TabWidth: 4
+UseTab: ForIndentation
+AlignArrayOfStructures: Left
+AllowShortCaseLabelsOnASingleLine: 'true'
+
+...
