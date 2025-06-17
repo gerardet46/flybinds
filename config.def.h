@@ -18,12 +18,12 @@ static unsigned int keywidth = 25;        /* width reserved for the keys */
 static unsigned int backkey  = XK_Left;   /* backwards key */
 
 static char* colors[SchemeLast][2] = {
-  /*                 fg          bg       */
-	[SchemeKey]    = {keyfg,       background}, /* fg for key */
-	[SchemeTitle]  = { keyfg,      background}, /* fg for key */
-	[SchemeSep]    = { sepfg,      background}, /* fg for separator (->) */
-	[SchemeDesc]   = { descfg,     background}, /* fg for description */
-	[SchemeBorder] = { background, bordercol }, /* bg for border */
+    /*                 fg          bg       */
+	[SchemeKey]    = { keyfg,      background }, /* fg for key */
+	[SchemeTitle]  = { keyfg,      background }, /* fg for key */
+	[SchemeSep]    = { sepfg,      background }, /* fg for separator (->) */
+	[SchemeDesc]   = { descfg,     background }, /* fg for description */
+	[SchemeBorder] = { background, bordercol  }, /* bg for border */
 };
 /* -c option, if nonzero flybinds will set this number of colums. If not, it's calculated */
 static unsigned int columns        = 0;   /* [-c]  max-columns (0 for auto) */

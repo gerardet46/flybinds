@@ -534,8 +534,8 @@ usage(void)
 {
 	fputs("usage: flybinds [-bvh] [-c columns] [-fn font] [-m monitor]\n"
 	      "                [-bg color] [-kf color] [-sf color] [-df color] [-bc color]\n"
-	      "                [-cs separation] [-ph paddingH] [-pv paddingV] [-bw border width]\n"
-	      "                [-w windowid] key1 key2 ...\n",
+	      "                [-cs separation] [-ph paddingH] [-pv paddingV] [-pt titlepadding]\n"
+	      "                [-bw border width] [-w windowid] key1 key2 ...\n",
 	    stderr);
 	exit(1);
 }
