@@ -20,7 +20,7 @@ options:
 config.h:
 	cp config.def.h $@
 
-$(OBJ): arg.h config.h config.mk drw.h
+$(OBJ): config.h config.mk drw.h
 
 flybinds: flybinds.o drw.o util.o
 	$(CC) -o $@ flybinds.o drw.o util.o $(LDFLAGS)
@@ -30,7 +30,7 @@ clean:
 
 dist: clean
 	mkdir -p flybinds-$(VERSION)
-	cp LICENSE Makefile README arg.h config.def.h config.mk flybinds.1\
+	cp LICENSE Makefile README config.def.h config.mk flybinds.1\
 		drw.h util.h $(SRC)\
 		flybinds-$(VERSION)
 	tar -cf flybinds-$(VERSION).tar flybinds-$(VERSION)
