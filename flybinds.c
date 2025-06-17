@@ -192,7 +192,7 @@ drawmenu(void)
 			y += titlepadding;
 			drawcomment(item, x, y, mw);
 			y += bh;
-			i = 0;
+			i = -1;
 		} else {
 			drawitem(item, x, y, mw - x);
 			if ((i + 1) % showncols == 0) {
