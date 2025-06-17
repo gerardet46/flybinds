@@ -1,6 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 /* Default settings; can be overriden by command line. */
-static int topbar = 1;                      /* -b  option; if 0, flybinds appears at bottom     */
+static int topbar = 1; /* [-b] if 0, flybinds appears at bottom */
 
 /* -fn option overrides fonts[0]; default X11 font or font set */
 static char font[]         = "monospace:size=12";
@@ -8,13 +8,13 @@ static const char* fonts[] = {
 	font,
 	"monospace:size=12",
 };
-static char sep[]            = "->";      /* -s option; set the separator between key and text */
-static char background[]     = "#000000"; /* global background */
-static char keyfg[]          = "#00ff00"; /* key name foreground */
-static char sepfg[]          = "#00ffff"; /* separator foreground */
-static char descfg[]         = "#ffffff"; /* description foreground */
-static char bordercol[]      = "#ff0000"; /* border color */
-static unsigned int keywidth = 25;        /* width reserved for the keys */
+static char sep[]            = "->";      /* [-s] set the separator between key and text */
+static char background[]     = "#000000"; /* [-bg] global background */
+static char keyfg[]          = "#00ff00"; /* [-fk] key name foreground */
+static char sepfg[]          = "#00ffff"; /* [-fs] separator foreground */
+static char descfg[]         = "#ffffff"; /* [-fd] description foreground */
+static char bordercol[]      = "#ff0000"; /* [-bc] border color */
+static unsigned int keywidth = 25;        /* width reserved for the key name */
 static unsigned int backkey  = XK_Left;   /* backwards key */
 
 static char* colors[SchemeLast][2] = {

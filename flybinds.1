@@ -10,6 +10,8 @@ flybinds \- keychords in Xorg
 .IR font ]
 .RB [ \-m
 .IR monitor ]
+.RB [ \-s
+.IR separator ]
 .RB [ \-bg
 .IR color ]
 .RB [ \-kf
@@ -53,16 +55,19 @@ display help message.
 .B \-c " columns"
 maximum number of columns to be displayed.
 .TP
+.B \-c " separator"
+separator used ('->', ':', '', ...)
+.TP
 .BI \-bg " color"
 background color.
 .TP
-.BI \-kf " color"
+.BI \-fk " color"
 foreground color for the key name.
 .TP
-.BI \-sf " color"
+.BI \-fs " color"
 foreground color for the separator.
 .TP
-.BI \-df " color"
+.BI \-fd " color"
 foreground color for the description.
 .TP
 .BI \-bc " color"

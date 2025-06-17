@@ -26,7 +26,7 @@
 #define LENGTH(X) (sizeof X / sizeof X[0])
 #define TEXTW(X)  (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define ITEMW(X)  (drw_fontset_getwidth(drw, (X)->keyname) \
-	              + drw_fontset_getwidth(drw, sep)         \
+	              + drw_fontset_getwidth(drw, separator)         \
 	              + drw_fontset_getwidth(drw, (X)->text) + lrpad)
 
 /* enums */
@@ -56,7 +56,7 @@ struct item {
 	item* parent;
 };
 
-static char* embed;
+static char *embed, *separator;
 static int bh, mw, mh;
 static int inputw = 0, columnwidth, showncols;
 static int lrpad; /* sum of left and right padding */
@@ -159,9 +159,9 @@ drawitem(item* item, int x, int y, int w)
 	x += keywidth;
 
 	drw_setscheme(drw, scheme[SchemeSep]);
-	drw_text(drw, x, y, w, bh, lrpad / 2, sep, 0);
+	drw_text(drw, x, y, w, bh, lrpad / 2, separator, 0);
 
-	x += TEXTW(sep);
+	x += TEXTW(separator);
 
 	drw_setscheme(drw, scheme[SchemeDesc]);
 	drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
@@ -532,8 +532,8 @@ setup(void)
 static void
 usage(void)
 {
-	fputs("usage: flybinds [-bvh] [-c columns] [-fn font] [-m monitor]\n"
-	      "                [-bg color] [-kf color] [-sf color] [-df color] [-bc color]\n"
+	fputs("usage: flybinds [-bvh] [-c columns] [-fn font] [-m monitor] [-s separator]\n"
+	      "                [-bg color] [-fk color] [-fs color] [-fd color] [-bc color]\n"
 	      "                [-cs separation] [-ph paddingH] [-pv paddingV] [-pt titlepadding]\n"
 	      "                [-bw border width] [-w windowid] key1 key2 ...\n",
 	    stderr);
@@ -544,6 +544,8 @@ int main(int argc, char* argv[])
 {
 	XWindowAttributes wa;
 	int i, j = 0;
+
+	separator = sep;
 
 	XrmInitialize();
 	load_xresources();
@@ -565,6 +567,8 @@ int main(int argc, char* argv[])
 			columns = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-cs")) /* column separation */
 			colpadding = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-s")) /* separator */
+			separator = argv[++i];
 		else if (!strcmp(argv[i], "-ph")) /* outside hor. padding */
 			outpaddinghor = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-pv")) /* outside vert. padding */
@@ -581,11 +585,11 @@ int main(int argc, char* argv[])
 			colors[SchemeKey][ColBg]  = argv[++i];
 			colors[SchemeSep][ColBg]  = argv[i];
 			colors[SchemeDesc][ColBg] = argv[i];
-		} else if (!strcmp(argv[i], "-kf")) /* key foreground color */
+		} else if (!strcmp(argv[i], "-fk")) /* key foreground color */
 			colors[SchemeKey][ColFg] = argv[++i];
-		else if (!strcmp(argv[i], "-sf")) /* separator foreground color */
+		else if (!strcmp(argv[i], "-fs")) /* separator foreground color */
 			colors[SchemeSep][ColFg] = argv[++i];
-		else if (!strcmp(argv[i], "-df")) /* description foreground color */
+		else if (!strcmp(argv[i], "-fd")) /* description foreground color */
 			colors[SchemeDesc][ColFg] = argv[++i];
 		else if (!strcmp(argv[i], "-bc")) /* border color */
 			colors[SchemeBorder][ColBg] = argv[++i];
