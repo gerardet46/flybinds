@@ -1,6 +1,6 @@
 .TH FLYBINDS 1 flybinds\-VERSION
 .SH NAME
-flybinds \- keychords in Xorg
+flybinds \- visual keychords in Xorg
 .SH SYNOPSIS
 .B flybinds
 .RB [ \-bvh ]
@@ -38,7 +38,7 @@ flybinds \- keychords in Xorg
 .IR key2 " ..."
 .SH DESCRIPTION
 .B flybinds 
-Keychord utility for Xorg, similar to which-key support in Emacs. It can be launched
+Keychord utility for Xorg, which displays a popup helper indicating the possibilities. Similar to which-key support in Emacs. It can be launched
 without parameters to go to the root or with some leading paramenters and flybinds
 will be launched as if you had pressed key1, then key2, ...
 .SH OPTIONS
@@ -87,5 +87,18 @@ padding-top for title sections
 .TP
 .BI \-bw " width"
 border width.
-.TP
-.
+.SH USAGE
+When launched, it will show a menu with items. To navigate to an item, just press the key it indicates. If that item is another menu, this will be shown. Otherwise, the specific script will be handled.
+.P
+flybinds can be launched with options (flybinds key1 key2 ...). This way, when launched, it will automatically navigate first to the item key1, then key2, etc.
+.P
+A final item can have a custom specific script to execute. However, if no script is specified, it will search up to the root the first script provided, and it will be launched that script with the keys needed to navigate to the final item needed.
+.P
+For example, suppose an item 'session' (s) has a child 'power' (p) that has the children 'poweroff' (p), 'reboot' (r) and 'suspend' (s). It's possible to set a script for the item 'session' (or 'power') but not for its final children. Then, if 'reboot' is pressed, the script for 'session' will be executed with the arguments 'p' 'r' ('session' -> (p)ower -> (r)eboot)
+.SH CUSTOMIZATION
+flybinds is customized by creating a custom config.h and (re)compiling the source code. This keeps it fast, secure and simple
+.P
+Appearance can be customized by changing the Xresources, as indicated in config.def.h, apart from the command line arguments explained in section OPTIONS.
+.SH SEE ALSO
+.IR dmenu (1),
+.IR sxhkd (1)

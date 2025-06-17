@@ -89,10 +89,10 @@ static item menu1[] = {
     { ".",   "Option 1", "echo '. pressed'"     },
     { ",",   "Option 2", "echo ', pressed'"     },
     { "␣",   "Option 3", "echo 'space pressed'" },
-	{ "#",   "TITLE 2"}, /* this is a title section */
+    { "#",   "TITLE 2"}, /* this is a title section */
     { "\\n", "Option 4", "echo 'enter pressed'" },
     { "n",   "Option 5", "echo 'n pressed'"     },
-	{ NULL }
+    { NULL }
 };
 
 /* main items */
@@ -100,7 +100,7 @@ static item items[] = {
     /* keyname  description    path to script   behaviour     children */
     { "a",      "Menu A",      "/usr/bin/echo", DEFAULT,    menu1 },
     { "b",      "Menu B",      "echo"         , ONEPERLINE, menu2 }, /* one per line */
-	{ NULL }
+    { NULL } /* last element MUST be {NULL} */
 };
 
 /*
