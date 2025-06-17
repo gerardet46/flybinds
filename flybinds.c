@@ -173,6 +173,10 @@ drawmenu(void)
 	item* item = parent->children;
 	int x = outpaddinghor, y = outpaddingvert, i;
 
+	calcoffsets();
+	XResizeWindow(dpy, win, mw, mh);
+	drw_resize(drw, mw, mh);
+
 	drw_setscheme(drw, scheme[SchemeKey]);
 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
 
@@ -310,9 +314,6 @@ navigate(char* keyname)
 					/* if it has children, navigate to them */
 					temp->parent = parent;
 					parent       = temp;
-					calcoffsets();
-					XResizeWindow(dpy, win, mw, mh);
-					drw_resize(drw, mw, mh);
 				} else
 					executeScript(temp); /* if not, execute script */
 
@@ -335,13 +336,9 @@ keypress(XKeyEvent* ev)
 	if (ksym == XK_Escape) {
 		cleanup();
 		exit(1);
-	} else if (ksym == backkey) {
-		/* go backwards */
-		parent = parent->parent;
-		calcoffsets();
-		XResizeWindow(dpy, win, mw, mh);
-		drw_resize(drw, mw, mh);
-	} else {
+	} else if (ksym == backkey) 
+		parent = parent->parent; /* go backwards */
+	else {
 		for (i = 0; i < LENGTH(keys); i++) {
 			if (ksym == keys[i].keysym && (keys[i].mod | 16) == (ev->state | 16)) {
 				navigate(keys[i].name);
@@ -525,7 +522,6 @@ setup(void)
 		}
 		grabfocus();
 	}
-	drw_resize(drw, mw, mh);
 	drawmenu();
 }
 
@@ -622,11 +618,11 @@ int main(int argc, char* argv[])
 		die("pledge");
 #endif
 	grabkeyboard();
-	setup();
 
 	for (; j < argc; j++)
 		navigate(argv[j]);
 
+	setup();
 	run();
 
 	return 1; /* unreachable */
