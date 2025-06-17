@@ -51,7 +51,7 @@ struct item {
 	char* text;
 	char* script;
 	unsigned int keep;
-	item* childs;
+	item* children;
 	int displayline;
 	item* parent;
 };
@@ -95,7 +95,7 @@ calcoffsets()
 {
 	/* c = number of columns, r = number of rows, comm = number of comments */
 	int c, i = 0, max = 0, r = 0, comm = 0;
-	item* temp = parent->childs;
+	item* temp = parent->children;
 
 	/* calc total items and column max width */
 	total = 0;
@@ -111,7 +111,7 @@ calcoffsets()
 	showncols   = (c < columns || columns == 0) ? c : columns;
 
 	/* rows */
-	temp = parent->childs;
+	temp = parent->children;
 	while (temp->keyname) {
 		if (temp->keyname[0] == '#') {
 			if (i % showncols)
@@ -170,7 +170,7 @@ drawitem(item* item, int x, int y, int w)
 static void
 drawmenu(void)
 {
-	item* item = parent->childs;
+	item* item = parent->children;
 	int x = outpaddinghor, y = outpaddingvert, i;
 
 	drw_setscheme(drw, scheme[SchemeKey]);
@@ -304,10 +304,10 @@ navigate(char* keyname)
 
 	if (keyname) {
 		/* search and set parent to that option */
-		for (temp = parent->childs; temp->keyname; temp++) {
+		for (temp = parent->children; temp->keyname; temp++) {
 			if (!strcmp(keyname, temp->keyname)) {
-				if (temp->childs) {
-					/* if it has childs, navigate to them */
+				if (temp->children) {
+					/* if it has children, navigate to them */
 					temp->parent = parent;
 					parent       = temp;
 					calcoffsets();

@@ -58,8 +58,8 @@ ITEM STRUCT:
 - description      description displayed
 - script           script or NULL
 - keep open?       1 to keep flybinds opened when pressing that particular item
-- childs           submenu
-- one per line?    1 to display its childs one by line
+- children         submenu
+- one per line?    1 to display its children one by line
 */
 
 /* subsubmenu 2.1 */
@@ -95,9 +95,9 @@ static item menu1[] = {
 
 /* main items */
 static item items[] = {
-    /* keyname  description    path to script   keep open?  childs  one per line */
-    { "a",      "Menu A",      "/usr/bin/echo", 0,          menu1,  0 },
-    { "b",      "Menu B",      "echo"         , 0,          menu2,  1 },
+    /* keyname  description    path to script   keep open?  children  one per line */
+    { "a",      "Menu A",      "/usr/bin/echo", 0,          menu1,    0 },
+    { "b",      "Menu B",      "echo"         , 0,          menu2,    1 },
 	{ NULL }
 };
 
