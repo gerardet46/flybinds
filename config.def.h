@@ -25,7 +25,7 @@ static char* colors[SchemeLast][2] = {
 	[SchemeDesc]   = { descfg,     background }, /* fg for description */
 	[SchemeBorder] = { background, bordercol  }, /* bg for border */
 };
-/* -c option, if nonzero flybinds will set this number of colums. If not, it's calculated */
+
 static unsigned int columns        = 0;   /* [-c]  max-columns (0 for auto) */
 static unsigned int colpadding     = 100; /* [-cs] separation between cols */
 static unsigned int outpaddinghor  = 25;  /* [-ph] */
@@ -57,9 +57,11 @@ ITEM STRUCT:
 - keyname          see keys.h, or "#" for title sections
 - description      description displayed
 - script           script or NULL
-- keep open?       1 to keep flybinds opened when pressing that particular item
-- children         submenu
-- one per line?    1 to display its children one by line
+- behaviour
+     * DEFAULT     default behaviour
+     * KEEPOPEN    keep flybinds opened for this final option
+     * ONEPERLINE  show one child per line
+- children         submenu or NULL
 */
 
 /* subsubmenu 2.1 */
@@ -70,15 +72,15 @@ static item menu21[] = {
 };
 /* subsubmenu 2.2 */
 static item menu22[] = {
-    { "1", "Option 2.2.1", NULL, 1 }, /* keep open */
-    { "2", "Option 2.2.2", NULL, 1 }, /* keep open */
-    { "3", "Option 2.2.3", NULL, 0 },
+    { "1", "Option 2.2.1", NULL, KEEPOPEN }, /* keep open */
+    { "2", "Option 2.2.2", NULL, KEEPOPEN }, /* keep open */
+    { "3", "Option 2.2.3", NULL, DEFAULT },
 	{ NULL }
 };
 /* submenu 2 */
 static item menu2[] = {
-    { "A", "Submenu 1", NULL, 0, menu21 }, /* capital A */
-    { "B", "Submenu 2", NULL, 0, menu22 },
+    { "A", "Submenu 1", NULL, DEFAULT, menu21 }, /* capital A */
+    { "B", "Submenu 2", NULL, DEFAULT, menu22 },
 	{ NULL }
 };
 /* submenu 1 */
@@ -95,11 +97,14 @@ static item menu1[] = {
 
 /* main items */
 static item items[] = {
-    /* keyname  description    path to script   keep open?  children  one per line */
-    { "a",      "Menu A",      "/usr/bin/echo", 0,          menu1,    0 },
-    { "b",      "Menu B",      "echo"         , 0,          menu2,    1 },
+    /* keyname  description    path to script   behaviour     children */
+    { "a",      "Menu A",      "/usr/bin/echo", DEFAULT,    menu1 },
+    { "b",      "Menu B",      "echo"         , ONEPERLINE, menu2 }, /* one per line */
 	{ NULL }
 };
 
-/* root of all the items (must be named "root"), pointing to the main items */
-static item root = { "#", "ROOT", NULL, 0, items, 0 };
+/*
+ Root of all the items (must be named "root"), pointing to the main items.
+ keyname and description aren't processed.
+*/
+static item root = { "#", "ROOT", NULL, DEFAULT, items };

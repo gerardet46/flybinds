@@ -39,6 +39,12 @@ enum {
 	SchemeLast,
 }; /* color schemes */
 
+enum {
+	DEFAULT,
+	KEEPOPEN,
+	ONEPERLINE,
+}; /* behaviour */
+
 typedef struct {
 	unsigned int mod;
 	KeySym keysym;
@@ -50,9 +56,8 @@ struct item {
 	char* keyname;
 	char* text;
 	char* script;
-	unsigned int keep;
+	unsigned int bh;
 	item* children;
-	int displayline;
 	item* parent;
 };
 
@@ -106,7 +111,7 @@ calcoffsets()
 	}
 
 	/* columns */
-	columnwidth = parent->displayline == 1 ? mw - 2 * outpaddinghor : max + colpadding;
+	columnwidth = parent->bh == ONEPERLINE ? mw - 2 * outpaddinghor : max + colpadding;
 	c           = (mw - 2 * outpaddinghor) / columnwidth;
 	showncols   = (c < columns || columns == 0) ? c : columns;
 
@@ -293,7 +298,7 @@ executeScript(item* selected)
 	if (sc) {
 		/* execute script with the navigation keys needed as arguments */
 		spawn(sc->script, arg);
-		if (selected->keep != 1) {
+		if (selected->bh != KEEPOPEN) {
 			cleanup();
 			exit(0);
 		}
