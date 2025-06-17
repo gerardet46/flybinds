@@ -26,6 +26,8 @@ flybinds \- keychords in Xorg
 .IR paddingH ]
 .RB [ \-pv
 .IR paddingV ]
+.RB [ \-pt
+.IR titlepadding ]
 .RB [ \-bw
 .IR border width ]
 .RB [ \-w
@@ -34,9 +36,9 @@ flybinds \- keychords in Xorg
 .IR key2 " ..."
 .SH DESCRIPTION
 .B flybinds 
-Keychord utility for Xorg with like which-key support in Emacs. It can be launched
-without parameters to go to the top parent or with some leading paramenters and
-flybinds will be launched as if you had pressed key1, then key2, ...
+Keychord utility for Xorg, similar to which-key support in Emacs. It can be launched
+without parameters to go to the root or with some leading paramenters and flybinds
+will be launched as if you had pressed key1, then key2, ...
 .SH OPTIONS
 .TP
 .B \-b
@@ -74,6 +76,9 @@ padding for left and right sides.
 .TP
 .BI \-pv " paddingV"
 padding for up and down sides.
+.TP
+.BI \-pt " titlepadding"
+padding-top for title sections
 .TP
 .BI \-bw " width"
 border width.

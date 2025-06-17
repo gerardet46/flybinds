@@ -569,6 +569,8 @@ int main(int argc, char* argv[])
 			outpaddinghor = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-pv")) /* outside vert. padding */
 			outpaddingvert = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "-pt")) /* title padding */
+			titlepadding = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-bw")) /* border width */
 			borderpx = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-m"))
