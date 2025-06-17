@@ -156,7 +156,7 @@ drawitem(item* item, int x, int y, int w)
 	drw_setscheme(drw, scheme[SchemeKey]);
 	drw_text(drw, x, y, w, bh, lrpad / 2, item->keyname, 0);
 
-	x += TEXTW(maxkey);
+	x += keywidth;
 
 	drw_setscheme(drw, scheme[SchemeSep]);
 	drw_text(drw, x, y, w, bh, lrpad / 2, sep, 0);
