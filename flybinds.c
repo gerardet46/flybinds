@@ -61,13 +61,12 @@ static int bh, mw, mh;
 static int inputw = 0, columnwidth, showncols;
 static int lrpad; /* sum of left and right padding */
 static int total;
-static int displayline = 0;
 static item* parent;
 static int mon = -1, screen;
 
 static Atom utf8;
 static Display* dpy;
-static Window root, parentwin, win;
+static Window winroot, parentwin, win;
 static XIC xic;
 
 static Drw* drw;
@@ -96,7 +95,7 @@ calcoffsets()
 {
 	/* c = number of columns, r = number of rows, comm = number of comments */
 	int c, i = 0, max = 0, r = 0, comm = 0;
-	item* temp = parent;
+	item* temp = parent->childs;
 
 	/* calc total items and column max width */
 	total = 0;
@@ -107,12 +106,12 @@ calcoffsets()
 	}
 
 	/* columns */
-	columnwidth = displayline == 1 ? mw - 2 * outpaddinghor : max + colpadding;
+	columnwidth = parent->displayline == 1 ? mw - 2 * outpaddinghor : max + colpadding;
 	c           = (mw - 2 * outpaddinghor) / columnwidth;
 	showncols   = (c < columns || columns == 0) ? c : columns;
 
 	/* rows */
-	temp = parent;
+	temp = parent->childs;
 	while (temp->keyname) {
 		if (temp->keyname[0] == '#') {
 			if (i % showncols)
@@ -136,7 +135,7 @@ cleanup(void)
 {
 	size_t i;
 
-	XUngrabKey(dpy, AnyKey, AnyModifier, root);
+	XUngrabKey(dpy, AnyKey, AnyModifier, winroot);
 	for (i = 0; i < SchemeLast; i++)
 		free(scheme[i]);
 	drw_free(drw);
@@ -171,7 +170,7 @@ drawitem(item* item, int x, int y, int w)
 static void
 drawmenu(void)
 {
-	item* item = parent;
+	item* item = parent->childs;
 	int x = outpaddinghor, y = outpaddingvert, i;
 
 	drw_setscheme(drw, scheme[SchemeKey]);
@@ -261,84 +260,64 @@ void spawn(char* sc, char** args)
 }
 
 static void
+executeScript(item* selected)
+{
+	item *sc, *aux;
+	const int maxargs = 8;
+	int argc;
+	char* arg[maxargs];
+
+	sc = NULL;
+	selected->parent = parent;
+
+	for (argc = 0; argc < maxargs; argc++)
+		arg[argc] = "";
+
+	aux = selected;
+	for (argc = 0; argc < maxargs; argc++, aux = aux->parent) {
+		if (aux->script && strlen(aux->script) > 0) {
+			sc = aux;
+			break;
+		}
+
+		/* add key to argument list and search script in predecessors */
+		arg[maxargs - 1 - argc] = aux->keyname;
+		if (aux == aux->parent)
+			break;
+	}
+
+	if (sc) {
+		/* execute script with the navigation keys needed as arguments */
+		spawn(sc->script, arg);
+		if (selected->keep != 1) {
+			cleanup();
+			exit(0);
+		}
+	} else
+		die("no script for this item");
+}
+
+static void
 navigate(char* keyname)
 {
+	item *temp;
+
 	if (keyname) {
 		/* search and set parent to that option */
-		item* temp = parent;
-		int j;
-		for (j = 0; j < total; j++) {
+		for (temp = parent->childs; temp->keyname; temp++) {
 			if (!strcmp(keyname, temp->keyname)) {
 				if (temp->childs) {
 					/* if it has childs, navigate to them */
-					temp->childs->parent = parent;
-					parent = temp->childs;
-					displayline = temp->displayline == 1 ? 1 : 0;
+					temp->parent = parent;
+					parent       = temp;
 					calcoffsets();
 					XResizeWindow(dpy, win, mw, mh);
 					drw_resize(drw, mw, mh);
-				} else {
-					/* if not, execute script */
-					char* arg[8];
-					int argc;
-					for (argc = 0; argc < 8; argc++)
-						arg[argc] = "";
+				} else
+					executeScript(temp); /* if not, execute script */
 
-					if (temp->script) {
-						/* execute if this child has script */
-						spawn(temp->script, arg);
-						if (temp->keep != 1) {
-							cleanup();
-							exit(0);
-						}
-					}
-
-					/* if not, search it */
-					item* sc = NULL;
-					item* aux = parent;
-					char* nextarg;
-					int keep = 0;
-					argc     = -2;
-
-					while (1) {
-						/* search script name */
-						nextarg = aux->keyname;
-						keep    = aux->keep;
-
-						if (aux->script && strlen(aux->script) > 0) {
-							/* change to this script */
-							sc = aux;
-							for (argc = 0; argc < 8; argc++)
-								arg[argc] = "";
-
-							argc = -2;
-						}
-
-						if (++argc >= 0 && argc < 8 && nextarg)
-							arg[argc] = nextarg;
-
-						if (aux == aux->parent)
-							break;
-						aux = aux->parent;
-					}
-
-					if (sc) {
-						arg[++argc] = temp->keyname;
-
-						spawn(sc->script, arg);
-						if (temp->keep != 1 && keep != 1) {
-							cleanup();
-							exit(0);
-						}
-					} else {
-						/* no script path */
-						cleanup();
-						exit(1);
-					}
-				}
 				break;
 			}
-			temp++;
 		}
 	}
 }
@@ -359,7 +338,6 @@ keypress(XKeyEvent* ev)
 	} else if (ksym == backkey) {
 		/* go backwards */
 		parent = parent->parent;
-		displayline = parent->parent->displayline == 1 ? 1 : 0;
 		calcoffsets();
 		XResizeWindow(dpy, win, mw, mh);
 		drw_resize(drw, mw, mh);
@@ -480,16 +458,16 @@ setup(void)
 
 #ifdef XINERAMA
 	i = 0;
-	if (parentwin == root && (info = XineramaQueryScreens(dpy, &n))) {
+	if (parentwin == winroot && (info = XineramaQueryScreens(dpy, &n))) {
 		XGetInputFocus(dpy, &w, &di);
 		if (mon >= 0 && mon < n)
 			i = mon;
-		else if (w != root && w != PointerRoot && w != None) {
+		else if (w != winroot && w != PointerRoot && w != None) {
 			/* find top-level window containing current input focus */
 			do {
 				if (XQueryTree(dpy, (pw = w), &dw, &w, &dws, &du) && dws)
 					XFree(dws);
-			} while (w != root && w != pw);
+			} while (w != winroot && w != pw);
 			/* find xinerama screen with which the window intersects most */
 			if (XGetWindowAttributes(dpy, pw, &wa))
 				for (j = 0; j < n; j++)
@@ -499,7 +477,7 @@ setup(void)
 					}
 		}
 		/* no focused window is on screen, so use pointer location instead */
-		if (mon < 0 && !area && XQueryPointer(dpy, root, &dw, &dw, &x, &y, &di, &di, &du))
+		if (mon < 0 && !area && XQueryPointer(dpy, winroot, &dw, &dw, &x, &y, &di, &di, &du))
 			for (i = 0; i < n; i++)
 				if (INTERSECT(x, y, 1, 1, info[i]) != 0)
 					break;
@@ -570,7 +548,7 @@ int main(int argc, char* argv[])
 	XrmInitialize();
 	load_xresources();
 
-	parent = items;
+	parent = &root;
 	parent->parent = parent;
 
 	for (i = 1; i < argc; i++)
@@ -622,13 +600,13 @@ int main(int argc, char* argv[])
 	if (!(dpy = XOpenDisplay(NULL)))
 		die("cannot open display");
 	screen = DefaultScreen(dpy);
-	root   = RootWindow(dpy, screen);
+	winroot   = RootWindow(dpy, screen);
 	if (!embed || !(parentwin = strtol(embed, NULL, 0)))
-		parentwin = root;
+		parentwin = winroot;
 	if (!XGetWindowAttributes(dpy, parentwin, &wa))
 		die("could not get embedding window attributes: 0x%lx",
 		    parentwin);
-	drw = drw_create(dpy, screen, root, wa.width, wa.height);
+	drw = drw_create(dpy, screen, winroot, wa.width, wa.height);
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h / 2;

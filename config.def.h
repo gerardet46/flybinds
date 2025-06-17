@@ -54,12 +54,12 @@ ResourcePref resources[] = {
 
 /*
 ITEM STRUCT:
-- keyname          see keys.h
-- description
-- script           path to script or NULL
-- keep open?       0 / 1 (applies if childs is NULL)
+- keyname          see keys.h, or "#" for title sections
+- description      description displayed
+- script           script or NULL
+- keep open?       1 to keep flybinds opened when pressing that particular item
 - childs           submenu
-- one per line?    0 / 1 (applies if childs is not NULL)
+- one per line?    1 to display its childs one by line
 */
 
 /* subsubmenu 2.1 */
@@ -83,20 +83,23 @@ static item menu2[] = {
 };
 /* submenu 1 */
 static item menu1[] = {
-    { "#",   "TITLE 1"},
-    { ".",   "Option 1", "notify-send '. pressed'"     },
-    { ",",   "Option 2", "notify-send ', pressed'"     },
-    { "␣",   "Option 3", "notify-send 'space pressed'" },
-	{ "#",   "TITLE 2"},
-    { "\\n", "Option 4", "notify-send 'enter pressed'" },
-    { "n",   "Option 5", "notify-send 'n pressed'"     },
+    { "#",   "TITLE 1"}, /* this is a title section */
+    { ".",   "Option 1", "echo '. pressed'"     },
+    { ",",   "Option 2", "echo ', pressed'"     },
+    { "␣",   "Option 3", "echo 'space pressed'" },
+	{ "#",   "TITLE 2"}, /* this is a title section */
+    { "\\n", "Option 4", "echo 'enter pressed'" },
+    { "n",   "Option 5", "echo 'n pressed'"     },
 	{ NULL }
 };
 
-/* parent items (must be named "items") */
+/* main items */
 static item items[] = {
-    /* keyname  description    path to script          keep open?  childs  one per line */
-    { "a",      "Menu A",      "/usr/bin/notify-send", 0,          menu1,  0 },
-    { "b",      "Menu B",      "/usr/bin/notify-send", 0,          menu2,  1 },
+    /* keyname  description    path to script   keep open?  childs  one per line */
+    { "a",      "Menu A",      "/usr/bin/echo", 0,          menu1,  0 },
+    { "b",      "Menu B",      "echo"         , 0,          menu2,  1 },
 	{ NULL }
 };
+
+/* root of all the items (must be named "root"), pointing to the main items */
+static item root = { "#", "ROOT", NULL, 0, items, 0 };
