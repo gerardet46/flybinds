@@ -109,3 +109,5 @@ static item items[] = {
  keyname and description aren't processed.
 */
 static item root = { "#", "ROOT", NULL, DEFAULT, items };
+
+/* See README.md (section Example) for an explanation of this implementated items */
