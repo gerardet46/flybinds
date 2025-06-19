@@ -52,17 +52,18 @@ ResourcePref resources[] = {
 	{ "borderpx",       INTEGER, &borderpx },
 };
 
-/*
-ITEM STRUCT:
+/* ITEM STRUCT:
 - keyname          see keys.h, or "#" for title sections
 - description      description displayed
 - script           script or NULL
-- behaviour
-     * DEFAULT     default behaviour
-     * KEEPOPEN    keep flybinds opened for this final option
-     * ONEPERLINE  show one child per line
+- behaviour ('|' can be used to use more than one flag)
+     * DEFAULT     default behaviour (eq. no flags, 0x00)
+     * KEEPOPEN    keep flybinds opened (only final items)
+     * CONCAT      pass script as an argument (instead of the keyname), not as a script
+     * ONEPERLINE  show one child per line (only intermediate items)
 - children         submenu or NULL
 */
+
 
 /* subsubmenu 2.1 */
 static item menu21[] = {
@@ -72,26 +73,26 @@ static item menu21[] = {
 };
 /* subsubmenu 2.2 */
 static item menu22[] = {
-    { "1", "Option 2.2.1", NULL, KEEPOPEN }, /* keep open */
-    { "2", "Option 2.2.2", NULL, KEEPOPEN }, /* keep open */
-    { "3", "Option 2.2.3", NULL, DEFAULT },
+    { "1", "Option 2.2.1", "| wc", KEEPOPEN|CONCAT }, /* keep open + concat */
+    { "2", "Option 2.2.2", NULL,   KEEPOPEN }, /* keep open */
+    { "3", "Option 2.2.3", NULL,   DEFAULT  },
 	{ NULL }
 };
 /* submenu 2 */
 static item menu2[] = {
-    { "A", "Submenu 1", NULL, DEFAULT, menu21 }, /* capital A */
-    { "B", "Submenu 2", NULL, DEFAULT, menu22 },
+    { "A", "Submenu 1", "'SUBMENU B -> A ->'", CONCAT,  menu21 }, /* Capital A. Also concat flag */
+    { "B", "Submenu 2", NULL,                  DEFAULT, menu22 },
 	{ NULL }
 };
 /* submenu 1 */
 static item menu1[] = {
-    { "#",   "TITLE 1"}, /* this is a title section */
+    { "#",   "SECTION WITHOUT CONCAT"}, /* this is a title section */
     { ".",   "Option 1", "echo '. pressed'"     },
     { ",",   "Option 2", "echo ', pressed'"     },
     { "␣",   "Option 3", "echo 'space pressed'" },
-    { "#",   "TITLE 2"}, /* this is a title section */
-    { "\\n", "Option 4", "echo 'enter pressed'" },
-    { "n",   "Option 5", "echo 'n pressed'"     },
+    { "#",   "SECTION WITH CONCAT"}, /* this is a title section */
+    { "\\n", "Option 4", "'enter pressed'", CONCAT },
+    { "n",   "Option 5", "'n pressed'",     CONCAT },
     { NULL }
 };
 

@@ -40,9 +40,10 @@ enum {
 }; /* color schemes */
 
 enum {
-	DEFAULT,
-	KEEPOPEN,
-	ONEPERLINE,
+	DEFAULT    = 0,
+	KEEPOPEN   = 1 << 0,
+	ONEPERLINE = 1 << 1,
+	CONCAT     = 1 << 2,
 }; /* behaviour */
 
 typedef struct {
@@ -111,7 +112,7 @@ calcoffsets()
 	}
 
 	/* columns */
-	columnwidth = parent->bh == ONEPERLINE ? mw - 2 * outpaddinghor : max + colpadding;
+	columnwidth = parent->bh & ONEPERLINE ? mw - 2 * outpaddinghor : max + colpadding;
 	c           = (mw - 2 * outpaddinghor) / columnwidth;
 	showncols   = (c < columns || columns == 0) ? c : columns;
 
@@ -284,13 +285,13 @@ executeScript(item* selected)
 
 	aux = selected;
 	for (argc = 0; argc < maxargs; argc++, aux = aux->parent) {
-		if (aux->script && strlen(aux->script) > 0) {
+		if (!(aux->bh & CONCAT) && aux->script && strlen(aux->script) > 0) {
 			sc = aux;
 			break;
 		}
 
 		/* add key to argument list and search script in predecessors */
-		arg[maxargs - 1 - argc] = aux->keyname;
+		arg[maxargs - 1 - argc] = aux->bh & CONCAT ? aux->script : aux->keyname;
 		if (aux == aux->parent)
 			break;
 	}
@@ -298,7 +299,7 @@ executeScript(item* selected)
 	if (sc) {
 		/* execute script with the navigation keys needed as arguments */
 		spawn(sc->script, arg);
-		if (selected->bh != KEEPOPEN) {
+		if (!(selected->bh & KEEPOPEN)) {
 			cleanup();
 			exit(0);
 		}
