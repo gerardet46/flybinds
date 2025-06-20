@@ -82,7 +82,6 @@ static item* parent;
 static int mon = -1, screen;
 static unsigned int numlockmask = 0, isdaemon = 0, cleaned = 0, initialized = 0;
 
-static Atom utf8;
 static Display* dpy;
 static Window winroot, parentwin, win;
 static XIC xic;
@@ -517,8 +516,6 @@ setup(void)
 	if (!initialized) {
 		for (j = 0; j < SchemeLast; j++)
 			scheme[j] = drw_scm_create(drw, colors[j], 2);
-
-		utf8 = XInternAtom(dpy, "UTF8_STRING", False);
 
 		/* calculate menu geometry */
 		bh      = drw->fonts->h + 2;
