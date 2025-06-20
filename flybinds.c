@@ -1,4 +1,5 @@
 /* See LICENSE file for copyright and license details. */
+#include <X11/X.h>
 #include <ctype.h>
 #include <locale.h>
 #include <stdio.h>
@@ -21,6 +22,7 @@
 #include "util.h"
 
 /* macros */
+#define CLEANMASK(mask)          (mask & ~(numlockmask | LockMask) & (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask))
 #define INTERSECT(x, y, w, h, r) (MAX(0, MIN((x) + (w), (r).x_org + (r).width) - MAX((x), (r).x_org)) \
 								  * MAX(0, MIN((y) + (h), (r).y_org + (r).height) - MAX((y), (r).y_org)))
 #define LENGTH(X) (sizeof X / sizeof X[0])
@@ -62,6 +64,15 @@ struct item {
 	item* parent;
 };
 
+typedef struct launcher launcher;
+struct launcher {
+	unsigned int mod;
+	KeySym keysym;
+	item* root;
+	char* defscript;
+	unsigned int defbh;
+};
+
 static char *embed, *separator;
 static int bh, mw, mh;
 static int inputw = 0, columnwidth, showncols;
@@ -69,6 +80,7 @@ static int lrpad; /* sum of left and right padding */
 static int total;
 static item* parent;
 static int mon = -1, screen;
+static unsigned int numlockmask = 0, isdaemon = 0, cleaned = 0, initialized = 0;
 
 static Atom utf8;
 static Display* dpy;
@@ -136,17 +148,70 @@ calcoffsets()
 	mh = r * bh + comm * titlepadding + 2 * outpaddingvert;
 }
 
+void
+updatenumlockmask(void)
+{
+	unsigned int i, j;
+	XModifierKeymap *modmap;
+
+	numlockmask = 0;
+	modmap = XGetModifierMapping(dpy);
+	for (i = 0; i < 8; i++)
+		for (j = 0; j < modmap->max_keypermod; j++)
+			if (modmap->modifiermap[i * modmap->max_keypermod + j]
+				== XKeysymToKeycode(dpy, XK_Num_Lock))
+				numlockmask = (1 << i);
+	XFreeModifiermap(modmap);
+}
+
+void
+grabkeys(void)
+{
+	updatenumlockmask();
+	{
+		unsigned int i, j, k;
+		unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
+		int start, end, skip;
+		KeySym *syms;
+
+		XUngrabKey(dpy, AnyKey, AnyModifier, winroot);
+		XDisplayKeycodes(dpy, &start, &end);
+		syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
+		if (!syms)
+			return;
+		for (k = start; k <= end; k++)
+			for (i = 0; i < LENGTH(launchers); i++)
+				/* skip modifier codes, we do that ourselves */
+				if (launchers[i].keysym == syms[(k - start) * skip])
+					for (j = 0; j < LENGTH(modifiers); j++)
+						XGrabKey(dpy, k,
+							 launchers[i].mod | modifiers[j],
+							 winroot, True,
+							 GrabModeAsync, GrabModeAsync);
+		XFree(syms);
+	}
+}
+
+
 static void
-cleanup(void)
+cleanup(int exitcode)
 {
 	size_t i;
 
-	XUngrabKey(dpy, AnyKey, AnyModifier, winroot);
-	for (i = 0; i < SchemeLast; i++)
-		free(scheme[i]);
-	drw_free(drw);
-	XSync(dpy, False);
-	XCloseDisplay(dpy);
+	if (isdaemon) {
+		XUngrabKeyboard(dpy, CurrentTime);
+		cleaned = 1;
+		XDestroyWindow(dpy, win);
+		XDestroyWindow(dpy, parentwin);
+	} else {
+		for (i = 0; i < SchemeLast; i++)
+			free(scheme[i]);
+		drw_free(drw);
+		XUngrabKey(dpy, AnyKey, AnyModifier, winroot);
+		XSync(dpy, False);
+		XCloseDisplay(dpy);
+		exit(exitcode);
+	}
 }
 
 static void
@@ -178,6 +243,9 @@ drawmenu(void)
 {
 	item* item = parent->children;
 	int x = outpaddinghor, y = outpaddingvert, i;
+
+	if (cleaned)
+		return;
 
 	calcoffsets();
 	XResizeWindow(dpy, win, mw, mh);
@@ -299,10 +367,8 @@ executeScript(item* selected)
 	if (sc) {
 		/* execute script with the navigation keys needed as arguments */
 		spawn(sc->script, arg);
-		if (!(selected->bh & KEEPOPEN)) {
-			cleanup();
-			exit(0);
-		}
+		if (!(selected->bh & KEEPOPEN))
+			cleanup(0);
 	} else
 		die("no script for this item");
 }
@@ -339,10 +405,9 @@ keypress(XKeyEvent* ev)
 
 	XmbLookupString(xic, ev, buf, sizeof buf, &ksym, &status);
 
-	if (ksym == XK_Escape) {
-		cleanup();
-		exit(1);
-	} else if (ksym == backkey) 
+	if (ksym == XK_Escape)
+		cleanup(1);
+	else if (ksym == backkey)
 		parent = parent->parent; /* go backwards */
 	else {
 		for (i = 0; i < LENGTH(keys); i++) {
@@ -360,15 +425,14 @@ run(void)
 {
 	XEvent ev;
 
-	while (!XNextEvent(dpy, &ev)) {
+	while (!cleaned && !XNextEvent(dpy, &ev)) {
 		if (XFilterEvent(&ev, win))
 			continue;
 		switch (ev.type) {
 		case DestroyNotify:
 			if (ev.xdestroywindow.window != win)
 				break;
-			cleanup();
-			exit(1);
+			cleanup(1);
 		case Expose:
 			if (ev.xexpose.count == 0)
 				drw_map(drw, win, 0, 0, mw, mh);
@@ -450,15 +514,16 @@ setup(void)
 	int a, di, n, area = 0;
 #endif
 	/* init appearance */
-	for (j = 0; j < SchemeLast; j++)
-		scheme[j] = drw_scm_create(drw, colors[j], 2);
+	if (!initialized) {
+		for (j = 0; j < SchemeLast; j++)
+			scheme[j] = drw_scm_create(drw, colors[j], 2);
 
-	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
+		utf8 = XInternAtom(dpy, "UTF8_STRING", False);
 
-	/* calculate menu geometry */
-	bh      = drw->fonts->h + 2;
-	columns = MAX(columns, 0);
-
+		/* calculate menu geometry */
+		bh      = drw->fonts->h + 2;
+		columns = MAX(columns, 0);
+	}
 #ifdef XINERAMA
 	i = 0;
 	if (parentwin == winroot && (info = XineramaQueryScreens(dpy, &n))) {
@@ -528,18 +593,57 @@ setup(void)
 		}
 		grabfocus();
 	}
+	initialized = 1;
 	drawmenu();
 }
 
 static void
 usage(void)
 {
-	fputs("usage: flybinds [-bvh] [-c columns] [-fn font] [-m monitor] [-s separator]\n"
+	fputs("usage: flybinds [-bdvh] [-c columns] [-fn font] [-m monitor] [-s separator]\n"
 	      "                [-bg color] [-fk color] [-fs color] [-fd color] [-bc color]\n"
 	      "                [-cs separation] [-ph paddingH] [-pv paddingV] [-pt titlepadding]\n"
 	      "                [-bw border width] [-w windowid] key1 key2 ...\n",
 	    stderr);
 	exit(1);
+}
+
+void
+rundaemon(void)
+{
+	XEvent e;
+	XKeyEvent *ev;
+	KeySym *ksym;
+	int i, xmapcode;
+
+	/* daemon keypress event loop */
+	while (!XNextEvent(dpy, &e)) {
+		if (e.type == KeyPress) {
+			ev = &e.xkey;
+			ksym = XGetKeyboardMapping(dpy, ev->keycode, 1, &xmapcode);
+			for (i = 0; i < LENGTH(launchers); i++) {
+				if (*ksym == launchers[i].keysym
+					&& CLEANMASK(launchers[i].mod) == CLEANMASK(ev->state)
+					&& launchers[i].root) {
+
+					/* change root */
+					root.children = launchers[i].root;
+					root.bh       = launchers[i].defbh;
+					if (launchers[i].defscript)
+						root.script = launchers[i].defscript;
+					parent         = &root;
+					parent->parent = parent;
+
+					/* open menu */
+					grabkeyboard();
+					setup();
+					run();
+				}
+			}
+			XFree(ksym);
+			cleaned = 0;
+		}
+	}
 }
 
 int main(int argc, char* argv[])
@@ -564,6 +668,8 @@ int main(int argc, char* argv[])
 			topbar = 0;
 		else if (!strcmp(argv[i], "-h")) /* displays help */
 			usage();
+		else if (!strcmp(argv[i], "-d")) /* daemon mode */
+			isdaemon = 1;
 		/* these options take one argument */
 		else if (!strcmp(argv[i], "-c")) /* number of columns in vertical list */
 			columns = atoi(argv[++i]);
@@ -597,11 +703,8 @@ int main(int argc, char* argv[])
 			colors[SchemeBorder][ColBg] = argv[++i];
 		else if (!strcmp(argv[i], "-w")) /* embedding window id */
 			embed = argv[++i];
-		/* naviagate from this arg (set initial item diferent from parent) */
-		else {
-			j = i;
-			break;
-		}
+		else
+			break; /* naviagate from this arg */
 
 	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fputs("warning: no locale support\n", stderr);
@@ -623,13 +726,18 @@ int main(int argc, char* argv[])
 	if (pledge("stdio rpath", NULL) == -1)
 		die("pledge");
 #endif
-	grabkeyboard();
 
-	for (; j < argc; j++)
-		navigate(argv[j]);
+	if (isdaemon) {
+		grabkeys();
+		rundaemon();
+	} else {
+		grabkeyboard();
+		for (; j < argc; j++)
+			navigate(argv[j]);
 
-	setup();
-	run();
+		setup();
+		run();
+	}
 
 	return 1; /* unreachable */
 }

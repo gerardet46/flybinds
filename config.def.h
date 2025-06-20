@@ -52,6 +52,9 @@ ResourcePref resources[] = {
 	{ "borderpx",       INTEGER, &borderpx },
 };
 
+/******** ITEMS ********/
+/***********************/
+
 /* ITEM STRUCT:
 - keyname          see keys.h, or "#" for title sections
 - description      description displayed
@@ -64,6 +67,7 @@ ResourcePref resources[] = {
 - children         submenu or NULL
 */
 
+/* See README.md (section Example) for an explanation of this implementated items */
 
 /* subsubmenu 2.1 */
 static item menu21[] = {
@@ -110,4 +114,26 @@ static item items[] = {
 */
 static item root = { "#", "ROOT", NULL, DEFAULT, items };
 
-/* See README.md (section Example) for an explanation of this implementated items */
+
+/******** LAUNCHERS ********/
+/***************************/
+
+/*
+ Execute flybinds in daemon mode with the -d option (flybinds -d).
+ It won't open any menu. Instead, it will listen with any of the launchers keys
+ is pressed and open an specific menu (new root).
+ Be sure key combinations aren't already grabbed, it will exit with a "BadAccess" error.
+
+ In this example, press s-M-r to open the items menus, s-M-a for the menu1 and s-M-b
+ for the menu2. You can specify a new root script (because it will be re-rooted, it cannot
+ search above it) and the behaviour (ONEPERLINE)
+*/
+#define MODKEY Mod4Mask
+#define ALTKEY Mod1Mask
+
+static const launcher launchers[] = {
+	/* modifier       key    root    script  behaviour */
+    { MODKEY|ALTKEY,  XK_b,  menu2,  "echo", ONEPERLINE },
+    { MODKEY|ALTKEY,  XK_a,  menu1,  "echo" },
+    { MODKEY|ALTKEY,  XK_r,  items },
+};
