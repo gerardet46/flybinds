@@ -75,7 +75,7 @@ struct launcher {
 
 static char *embed, *separator;
 static int bh, mw, mh;
-static int inputw = 0, columnwidth, showncols;
+static int columnwidth, showncols;
 static int lrpad; /* sum of left and right padding */
 static int total;
 static item* parent;
@@ -551,7 +551,6 @@ setup(void)
 					break;
 
 		mw = info[i].width;
-		calcoffsets();
 		x = info[i].x_org;
 		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
 		XFree(info);
@@ -565,13 +564,13 @@ setup(void)
 		y  = topbar ? 0 : wa.height - mh;
 		mw = wa.width;
 	}
-	inputw = MIN(inputw, mw / 3);
+	calcoffsets();
 
 	/* create menu window */
 	swa.override_redirect = True;
 	swa.background_pixel  = scheme[SchemeKey][ColBg].pixel;
 	swa.event_mask        = ExposureMask | KeyPressMask | VisibilityChangeMask;
-	win                   = XCreateWindow(dpy, parentwin, x, y, mw, mh, 0,
+	win                   = XCreateWindow(dpy, winroot, x, y, mw, mh, 0,
 	                      CopyFromParent, CopyFromParent, CopyFromParent,
 	                      CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
 	XSetClassHint(dpy, win, &ch);
@@ -585,6 +584,7 @@ setup(void)
 
 	XMapRaised(dpy, win);
 	if (embed) {
+		XReparentWindow(dpy, win, parentwin, x, y);
 		XSelectInput(dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
 		if (XQueryTree(dpy, parentwin, &dw, &w, &dws, &du) && dws) {
 			for (i = 0; i < du && dws[i] != win; ++i)
