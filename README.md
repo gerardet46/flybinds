@@ -31,12 +31,27 @@ For example, let's say we have a parent item **c (config)** and there a child
 To see how the program works, just play around. The file `config.def.h` explains
 how to use and configure flybinds easily.
 
+### Daemon mode
+`flybinds` can be launched in `daemon mode`:
+
+```bash
+flybinds -d
+```
+
+Then, flybinds won't show any menu. Instead, it will wait for a key combination
+configured in `config.h` (array `launchers`). When one of them is triggered,
+flybinds will wake up and show the menu configured.
+
+_Daemon mode_ avoids overhead and process and resources creation and
+destruction, making flybinds respond instantly.
+
 ## Xresources
 It can be configured via the `~/.Xresources` file, using the class `flybinds`.
 Check `config.def.h` to see what resources can be customized.
 
 ## Scripts
-To avoid writing a script per item, you can group a script for a whole submenu. In the example of *shutdown, reboot, ...* we can write a simple script like this:
+To avoid writing a script per item, you can group a script for a whole submenu.
+In the example of *shutdown, reboot, ...* we can write a simple script like this:
 ```bash
 case "$@" in
     s) poweroff ;;
